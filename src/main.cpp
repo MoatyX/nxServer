@@ -97,9 +97,10 @@ void setup() {
     Serial.println("Initiating the Server mode....");
     nxServer::FunctionData data;
     data.fn = handleLED;
-    data.responseCode = 200;
+    data.responseCode = 204;
     data.ResponseMsg = "<h1>done</h1>";
     data.route = "/led";
+    data.method = HTTP_POST;
     server.addCustomController(data);
     modeInited = server.begin();
 

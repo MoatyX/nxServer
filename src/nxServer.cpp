@@ -7,8 +7,13 @@ nxServer::nxServer(uint8_t portNum) : _server(portNum) {
 }
 
 bool nxServer::begin() {
-    WiFi.mode(WIFI_AP);
-    bool connected = WiFi.softAP(serverSSID, serverPassword);
+    WiFi.mode(WIFI_AP_STA);
+    bool connected = WiFi.begin(serverSSID, serverPassword);
+    while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    connected = true;
+    }
     if(connected) {
         _server.on("/", std::bind(&nxServer::_handleIndexPage, this));
         _server.onNotFound(std::bind(&nxServer::_handleNotFoundPage, this));
@@ -17,7 +22,7 @@ bool nxServer::begin() {
         auto it = _customControllers.begin();
         while(it != _customControllers.end())
         {
-            _server.on(it->first, it->second);
+            _server.on(it->route, it->method, it->fn);
             it++;
         }
         _server.begin();
@@ -26,12 +31,14 @@ bool nxServer::begin() {
     _connectionEstablished = connected;
 }
 
-void nxServer::addCustomController(nxServer::FunctionData fn) {
-    auto finalFunc = [fn, this]() {
-        fn.fn();    //execute the custom function
-        this->_server.send(fn.responseCode, "text/html", fn.ResponseMsg);       //send a response
+void nxServer::addCustomController(nxServer::FunctionData fnData) {
+    auto finalFunc = [fnData, this]() {
+        fnData.fn();    //execute the custom function
+        this->_server.send(fnData.responseCode, _getContentType(fnData.contentType), fnData.ResponseMsg);       //send a response
     };
-    _customControllers.insert(std::make_pair(fn.route, finalFunc));
+
+    fnData.fn = finalFunc;
+    _customControllers.push_back(fnData);
 }
 
 void nxServer::serverLoop() {
@@ -43,7 +50,7 @@ bool nxServer::isConnected() {
 }
 
 IPAddress nxServer::getIP() {
-    return WiFi.softAPIP();
+    return WiFi.localIP();
 }
 
 
@@ -61,4 +68,16 @@ void nxServer::_handleStatusPage() {
 
 void nxServer::_handleConfigPage() {
     _server.send(200, "text/html", configPage);
+}
+
+char* nxServer::_getContentType(nxServer::ContentType contentType) {
+    switch (contentType)
+    {
+    case ContentType::TEXT:
+    return "text/html";
+    case ContentType::JSON:
+    return "json";
+    default:
+        return "text/html";
+    }
 }

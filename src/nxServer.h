@@ -17,23 +17,31 @@ public:
     bool isConnected();
     IPAddress getIP();
 
+    enum ContentType {
+        TEXT,
+        JSON
+    };
+
     typedef struct {
         const char* route;
         ESP8266WebServer::THandlerFunction fn;
         uint16_t responseCode;
         const char* ResponseMsg;
+        ContentType contentType;
+        HTTPMethod method;
+
     } FunctionData;
 
     void addCustomController(nxServer::FunctionData fn);
 
-    const char* serverSSID = "MoatyNXServer";
-    const char* serverPassword = "bigdaddy";
+    const char* serverSSID = "nxo";
+    const char* serverPassword = "3835783642339624";
 
 private:
     bool _connectionEstablished = false;
     ESP8266WebServer _server;
 
-    std::map<const char*, ESP8266WebServer::THandlerFunction> _customControllers;
+    std::vector<FunctionData> _customControllers;
 
     //main controllers
     void _handleIndexPage();
@@ -42,6 +50,8 @@ private:
     //other controllers
     void _handleStatusPage();
     void _handleConfigPage();
+
+    char* _getContentType(nxServer::ContentType contentType);
 };
 
 #endif
