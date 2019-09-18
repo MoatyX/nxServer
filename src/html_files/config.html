@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>NX Server Configuration Page</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+
+<body>
+
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+            <h1 class="h2">Configure a Connection</h1>
+        </div>
+
+        <form action="/api/configureServer" method="POST">
+            <div class="custom-control custom-checkbox mb-3 pl-4">
+                <input name="apConfig" type="checkbox" class="custom-control-input" id="apConfig">
+                <label class="custom-control-label" for="apConfig">Configure as Access Point</label>
+            </div>
+            <div class="mb-3">
+                <label for="ssid">SSID Name:</label>
+                <input name="ssid" required type="text" class="form-control" id="ssid" placeholder="My Network Name">
+            </div>
+            <div class="mb-3">
+                <label for="pass">Password</label>
+                <input name="pass" required type="text" class="form-control" id="pass" placeholder="My Network Password Name">
+            </div>
+            <br>
+            <button class="btn btn-primary btn-lg col-3" type="submit">Submit</button>
+        </form>
+
+    </main>
+
+</body>
+
+</html>

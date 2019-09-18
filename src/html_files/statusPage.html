@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>NX Server Status Page</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+
+<body onload="onLoaded()">
+
+    <script>
+        function onLoaded() {
+            const Http = new XMLHttpRequest();
+            const url = 'http://172.16.38.108/api/getStatus';
+            Http.open("GET", url);
+            Http.send();
+
+            Http.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var obj = JSON.parse(Http.responseText);
+                    var ssid = document.getElementById("ssid").innerHTML = obj.ssid;
+                    var ip = document.getElementById("ip").innerHTML = obj.ip;
+                    var apIp = document.getElementById("apIp").innerHTML = obj.apIp;
+                    document.getElementById("opMode").innerHTML = ip != apIp ? "Connected Server" : "Isolated Access Point";
+                }
+            }
+        }
+    </script>
+
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+            <h1 class="h2">Status</h1>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label for="ssid"><strong>Connected SSID:</strong></label>
+            <label id="ssid"></label>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="ip"><strong>Local IP:</strong></label>
+            <label id="ip"></label>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="apIp"><strong>Soft Access Point IP:</strong></label>
+            <label id="apIp"></label>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="opMode"><strong>Operating Mode:</strong></label>
+            <label id="opMode"></label>
+        </div>
+
+    </main>
+
+
+
+</body>
+
+</html>

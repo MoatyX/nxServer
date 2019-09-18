@@ -18,8 +18,9 @@ public:
     IPAddress getIP();
 
     enum ContentType {
+        HTML,
         TEXT,
-        JSON
+        CSS
     };
 
     typedef struct {
@@ -34,6 +35,14 @@ public:
 
     void addCustomController(nxServer::FunctionData fn);
 
+    inline const size_t getArgCount() {
+        return _server.args();
+    }
+
+    inline const String& getArg(const int i) {
+        return _server.arg(i);
+    }
+
     const char* serverSSID = "nxo";
     const char* serverPassword = "3835783642339624";
 
@@ -43,15 +52,23 @@ private:
 
     std::vector<FunctionData> _customControllers;
 
-    //main controllers
-    void _handleIndexPage();
-    void _handleNotFoundPage();
+    //internal functions
+    void _setupServerRoutes();
 
-    //other controllers
-    void _handleStatusPage();
-    void _handleConfigPage();
+    //main View Controllers
+    void _VC_IndexPage();
+    void _VC_NotFoundPage();
+    void _VC_StatusPage();
+    void _VC_ConfigPage();
 
-    char* _getContentType(nxServer::ContentType contentType);
+    //controllers
+    void _GET_Bootstrap();
+    void _GET_status();
+    void _POST_LED();
+    void _POST_ConfigureServer();
+
+
+    const static char* _getContentType(const nxServer::ContentType contentType);
 };
 
 #endif
