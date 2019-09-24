@@ -6,7 +6,8 @@
 #include <ESP8266WebServer.h>
 #include <map>
 
-class nxServer {
+class nxServer
+{
 
 public:
     nxServer(uint8_t portNum);
@@ -14,20 +15,32 @@ public:
     void serverLoop();
     bool begin();
 
-    bool isConnected();
-    IPAddress getIP();
+    inline bool isConnected()
+    {
+        return _connectionEstablished;
+    }
+    inline IPAddress getIP()
+    {
+        return WiFi.localIP();
+    }
+    inline IPAddress getSoftAPIP() {
+        return WiFi.softAPIP();
+    }
 
-    enum ContentType {
+    enum ContentType
+    {
         HTML,
         TEXT,
+        JSON,
         CSS
     };
 
-    typedef struct {
-        const char* route;
+    typedef struct
+    {
+        const char *route;
         ESP8266WebServer::THandlerFunction fn;
         uint16_t responseCode;
-        const char* ResponseMsg;
+        const char *ResponseMsg;
         ContentType contentType;
         HTTPMethod method;
 
@@ -35,16 +48,23 @@ public:
 
     void addCustomController(nxServer::FunctionData fn);
 
-    inline const size_t getArgCount() {
+    bool connectTo(const String& ssid, const String& pass);
+
+    inline const size_t getArgCount()
+    {
         return _server.args();
     }
 
-    inline const String& getArg(const int i) {
+    inline const String &getArg(const int i)
+    {
         return _server.arg(i);
     }
 
-    const char* serverSSID = "nxo";
-    const char* serverPassword = "3835783642339624";
+    // const char *serverSSID = "nxo";
+    // const char *serverPassword = "3835783642339624";
+
+    const char* AP_SSID = "nxServer";
+    const char* AP_PASS = "bigdaddy";
 
 private:
     bool _connectionEstablished = false;
@@ -64,11 +84,11 @@ private:
     //controllers
     void _GET_Bootstrap();
     void _GET_status();
+    void _GET_WLANList();
     void _POST_LED();
     void _POST_ConfigureServer();
 
-
-    const static char* _getContentType(const nxServer::ContentType contentType);
+    const static char *_getContentType(const nxServer::ContentType contentType);
 };
 
 #endif

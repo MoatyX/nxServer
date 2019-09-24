@@ -8,14 +8,8 @@ nxServer::nxServer(uint8_t portNum) : _server(portNum)
 
 bool nxServer::begin()
 {
-    WiFi.mode(WIFI_AP_STA);
-    bool connected = WiFi.begin(serverSSID, serverPassword);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(500);
-        Serial.print(".");
-    }
-    connected = WiFi.status() == WL_CONNECTED;
+    // const bool connected = connectTo(serverSSID, serverPassword);
+    const bool connected = WiFi.softAP(AP_SSID, AP_PASS);
     if (connected)
     {
         _setupServerRoutes();
@@ -39,8 +33,9 @@ void nxServer::_setupServerRoutes()
     _server.onNotFound(std::bind(&nxServer::_VC_NotFoundPage, this));
 
     _server.on(F("/api/bootstrap.css"), HTTP_GET, std::bind(&nxServer::_GET_Bootstrap, this));
-    _server.on(F("/api/led"), HTTP_POST, std::bind(&nxServer::_POST_LED, this));
     _server.on(F("/api/getStatus"), HTTP_GET, std::bind(&nxServer::_GET_status, this));
+    _server.on(F("/api/getWLANNetworks"), HTTP_GET, std::bind(&nxServer::_GET_WLANList, this));
+    _server.on(F("/api/led"), HTTP_POST, std::bind(&nxServer::_POST_LED, this));
     _server.on(F("/api/configureServer"), HTTP_POST, std::bind(&nxServer::_POST_ConfigureServer, this));
 }
 
@@ -60,14 +55,22 @@ void nxServer::serverLoop()
     _server.handleClient();
 }
 
-bool nxServer::isConnected()
+bool nxServer::connectTo(const String &ssid, const String &pass)
 {
-    return _connectionEstablished;
-}
-
-IPAddress nxServer::getIP()
-{
-    return WiFi.localIP();
+    WiFi.mode(WIFI_AP_STA);
+    bool connected = WiFi.begin(ssid, pass);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+        // Serial.print(WiFi.status());
+        if (WiFi.status() == WL_CONNECT_FAILED)
+        {
+            Serial.println("failed to connect");
+            return false;
+        }
+    }
+    return WiFi.status() == WL_CONNECTED;
 }
 
 void nxServer::_VC_IndexPage()
@@ -95,10 +98,24 @@ void nxServer::_GET_Bootstrap()
     _server.send(200, _getContentType(ContentType::CSS), styles);
 }
 
+void nxServer::_GET_WLANList()
+{
+    String response = "{\n\
+        \"networks\": [";
+    int n = WiFi.scanNetworks();
+    for (int i = 0; i < n; i++)
+    {
+        response += "\"" + WiFi.SSID(i) + "\",";
+    }
+    response.remove(response.length() - 1); //remove the last comma
+    response += "]}";
+    _server.send(200, _getContentType(ContentType::JSON), response);
+}
+
 void nxServer::_GET_status()
 {
     const String output("{\"ssid\":\"" + WiFi.SSID() + "\", \"ip\":\"" + getIP().toString() + "\", \"apIp\":\"" + WiFi.softAPIP().toString() + "\"" + "}");
-    _server.send(200, _getContentType(ContentType::TEXT), output);
+    _server.send(200, _getContentType(ContentType::JSON), output);
 }
 
 void nxServer::_POST_ConfigureServer()
@@ -108,13 +125,11 @@ void nxServer::_POST_ConfigureServer()
     * string ssid;
     * string pass;
     */
-    Serial.println(_server.args());
     if (!_server.args())
     {
         _server.send(400, _getContentType(ContentType::TEXT), "no Args");
         return;
     }
-
 
     //manually search for the args to avoid problems if the args order have changed
     const bool apConfig = _server.hasArg(F("apConfig"));
@@ -135,7 +150,18 @@ void nxServer::_POST_ConfigureServer()
         }
     }
 
-    _server.send(204, _getContentType(ContentType::TEXT), F("Configured"));
+    if (ssid && pass)
+    {
+        bool x = connectTo(ssid, pass);
+        if (x)
+        {
+            _server.send(204, _getContentType(ContentType::TEXT), F("Configured"));
+            Serial.println(WiFi.localIP());
+            return;
+        }
+    }
+
+    _server.send(400, _getContentType(ContentType::TEXT), F("Failed to connect"));
 }
 
 void nxServer::_POST_LED()
@@ -162,6 +188,8 @@ const char *nxServer::_getContentType(nxServer::ContentType contentType)
         return "text/html";
     case ContentType::CSS:
         return "text/css";
+    case ContentType::JSON:
+        return "text/json";
     default:
         return "text/plain";
     }

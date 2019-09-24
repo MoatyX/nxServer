@@ -29,7 +29,7 @@ void setup() {
   } while (!modeInited);
   
   Serial.print("Server has started with the IP address: ");
-  Serial.println(server.getIP());
+  Serial.println(server.getSoftAPIP());
 
   Serial.println("Init End");
 }

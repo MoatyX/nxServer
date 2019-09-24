@@ -14,17 +14,17 @@
     <script>
         function onLoaded() {
             const Http = new XMLHttpRequest();
-            const url = 'http://172.16.38.108/api/getStatus';
+            const url = 'http://192.168.4.1/api/getStatus';
             Http.open("GET", url);
             Http.send();
 
             Http.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    var obj = JSON.parse(Http.responseText);
-                    var ssid = document.getElementById("ssid").innerHTML = obj.ssid;
-                    var ip = document.getElementById("ip").innerHTML = obj.ip;
-                    var apIp = document.getElementById("apIp").innerHTML = obj.apIp;
-                    document.getElementById("opMode").innerHTML = ip != apIp ? "Connected Server" : "Isolated Access Point";
+                    const obj = JSON.parse(Http.responseText);
+                    const ip = document.getElementById("ip").innerHTML = obj.ip;
+                    const apIp = document.getElementById("apIp").innerHTML = obj.apIp;
+                    const ssid = document.getElementById("ssid").innerHTML = obj.ssid === "" ? "(Unset)" : obj.ssid;
+                    document.getElementById("opMode").innerHTML = ip === apIp ? "Connected Server" : "Isolated Access Point";
                 }
             }
         }
