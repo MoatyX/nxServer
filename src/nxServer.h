@@ -4,7 +4,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
-#include <map>
+#include <ESP8266mDNS.h>
 
 class nxServer
 {
@@ -60,8 +60,8 @@ public:
         return _server.arg(i);
     }
 
-    // const char *serverSSID = "nxo";
-    // const char *serverPassword = "3835783642339624";
+    const char *serverSSID = "nxo";
+    const char *serverPassword = "3835783642339624";
 
     const char* AP_SSID = "nxServer";
     const char* AP_PASS = "bigdaddy";
@@ -74,6 +74,7 @@ private:
 
     //internal functions
     void _setupServerRoutes();
+    void _serverResponseWithCORS(const uint32_t code, const nxServer::ContentType contentType, const String& content);
 
     //main View Controllers
     void _VC_IndexPage();

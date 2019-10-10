@@ -8,7 +8,7 @@ nxServer::nxServer(uint8_t portNum) : _server(portNum)
 
 bool nxServer::begin()
 {
-    // const bool connected = connectTo(serverSSID, serverPassword);
+    connectTo(serverSSID, serverPassword);
     const bool connected = WiFi.softAP(AP_SSID, AP_PASS);
     if (connected)
     {
@@ -19,6 +19,14 @@ bool nxServer::begin()
             _server.on(it->route, it->method, it->fn);
             it++;
         }
+
+        // if (!MDNS.begin("nxserver", getSoftAPIP()))
+        // {
+        //     Serial.println("Error setting up MDNS responder!");
+        // }
+
+        // MDNS.notifyAPChange();
+        // MDNS.addService("http", "tcp", 80);
         _server.begin();
     }
 
@@ -43,7 +51,7 @@ void nxServer::addCustomController(nxServer::FunctionData fnData)
 {
     auto finalFunc = [fnData, this]() {
         fnData.fn();                                                                                      //execute the custom function
-        this->_server.send(fnData.responseCode, _getContentType(fnData.contentType), fnData.ResponseMsg); //send a response
+        this->_serverResponseWithCORS(fnData.responseCode, fnData.contentType, fnData.ResponseMsg); //send a response
     };
 
     fnData.fn = finalFunc;
@@ -52,13 +60,14 @@ void nxServer::addCustomController(nxServer::FunctionData fnData)
 
 void nxServer::serverLoop()
 {
+    // MDNS.update();
     _server.handleClient();
 }
 
 bool nxServer::connectTo(const String &ssid, const String &pass)
 {
     WiFi.mode(WIFI_AP_STA);
-    bool connected = WiFi.begin(ssid, pass);
+    WiFi.begin(ssid, pass);
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(500);
@@ -71,6 +80,12 @@ bool nxServer::connectTo(const String &ssid, const String &pass)
         }
     }
     return WiFi.status() == WL_CONNECTED;
+}
+
+void nxServer::_serverResponseWithCORS(const uint32_t code, const nxServer::ContentType contentType, const String &content)
+{
+    _server.sendHeader(F("Access-Control-Allow-Origin"), "*");
+    _server.send(code, _getContentType(contentType), content);
 }
 
 void nxServer::_VC_IndexPage()
@@ -95,13 +110,13 @@ void nxServer::_VC_ConfigPage()
 
 void nxServer::_GET_Bootstrap()
 {
-    _server.send(200, _getContentType(ContentType::CSS), styles);
+    _serverResponseWithCORS(200, ContentType::CSS, FPSTR(styles));
 }
 
 void nxServer::_GET_WLANList()
 {
-    String response = "{\n\
-        \"networks\": [";
+    String response = F("{\n\
+        \"networks\": [");
     int n = WiFi.scanNetworks();
     for (int i = 0; i < n; i++)
     {
@@ -109,13 +124,14 @@ void nxServer::_GET_WLANList()
     }
     response.remove(response.length() - 1); //remove the last comma
     response += "]}";
-    _server.send(200, _getContentType(ContentType::JSON), response);
+
+    _serverResponseWithCORS(200, ContentType::JSON, response);
 }
 
 void nxServer::_GET_status()
 {
     const String output("{\"ssid\":\"" + WiFi.SSID() + "\", \"ip\":\"" + getIP().toString() + "\", \"apIp\":\"" + WiFi.softAPIP().toString() + "\"" + "}");
-    _server.send(200, _getContentType(ContentType::JSON), output);
+    _serverResponseWithCORS(200, ContentType::JSON, output);
 }
 
 void nxServer::_POST_ConfigureServer()
@@ -127,15 +143,14 @@ void nxServer::_POST_ConfigureServer()
     */
     if (!_server.args())
     {
-        _server.send(400, _getContentType(ContentType::TEXT), "no Args");
+        _serverResponseWithCORS(400, ContentType::TEXT, F("no Args"));
         return;
     }
 
     //manually search for the args to avoid problems if the args order have changed
-    const bool apConfig = _server.hasArg(F("apConfig"));
     String ssid;
     String pass;
-    for (size_t i = 0; i < _server.args() - 1; i++)
+    for (int8 i = 0; i < _server.args() - 1; i++)
     {
         if (_server.argName(i) == F("ssid"))
         {
@@ -152,16 +167,15 @@ void nxServer::_POST_ConfigureServer()
 
     if (ssid && pass)
     {
-        bool x = connectTo(ssid, pass);
-        if (x)
+        bool connected = connectTo(ssid, pass);
+        if (connected)
         {
-            _server.send(204, _getContentType(ContentType::TEXT), F("Configured"));
-            Serial.println(WiFi.localIP());
+            _serverResponseWithCORS(204, ContentType::TEXT, F("Configured"));
             return;
         }
     }
 
-    _server.send(400, _getContentType(ContentType::TEXT), F("Failed to connect"));
+    _serverResponseWithCORS(400, ContentType::TEXT, F("Failed to connect"));
 }
 
 void nxServer::_POST_LED()
@@ -169,13 +183,8 @@ void nxServer::_POST_LED()
     static bool state = false;
     state = !state;
     digitalWrite(LED_BUILTIN, state ? HIGH : LOW);
-    for (size_t i = 0; i < _server.args(); i++)
-    {
-        //we already know an argument of type int called "Clicks" is incoming
-        Serial.println(_server.arg(i));
-    }
 
-    _server.send(204, _getContentType(ContentType::TEXT));
+    _serverResponseWithCORS(204, ContentType::TEXT, "done");
 }
 
 const char *nxServer::_getContentType(nxServer::ContentType contentType)
